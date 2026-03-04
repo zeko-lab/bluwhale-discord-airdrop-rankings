@@ -107,10 +107,13 @@ function merge(mee6, engage, blusub) {
   for (const p of mee6.players) {
     const id = String(p.id);
     const username = p.username || "";
-    const roleNames = (mee6.roleRewards || [])
-      .filter((rr) => (p.level || 0) >= (rr.rank || 0))
-      .map((rr) => rr.role?.name)
-      .filter(Boolean);
+    const qualifying = (mee6.roleRewards || []).filter(
+      (rr) => (p.level || 0) >= (rr.rank || 0)
+    );
+    const highest = qualifying.length
+      ? qualifying.reduce((best, rr) => ((rr.rank || 0) > (best?.rank ?? -1) ? rr : best))
+      : null;
+    const roleNames = highest?.role?.name ? [highest.role.name] : [];
     set(id, username, {
       username,
       mee6Xp: p.xp || 0,
