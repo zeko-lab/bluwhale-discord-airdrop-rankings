@@ -140,6 +140,7 @@
         html += "<div class='admin-section config-actions'>";
         html += "<button type='button' id='copy_json'>Copy JSON</button>";
         html += "<button type='button' id='download_json'>Download airdrop-config.json</button>";
+        html += "<button type='button' id='export_csv'>Export leaderboard CSV</button>";
         html += "</div>";
 
         root.innerHTML = html;
@@ -201,6 +202,54 @@
           const a = document.createElement("a");
           a.href = "data:application/json;charset=utf-8," + encodeURIComponent(json);
           a.download = "airdrop-config.json";
+          a.click();
+        };
+
+        document.getElementById("export_csv").onclick = () => {
+          const cfg = buildConfig();
+          const wEngage = cfg.weight_engage ?? 100;
+          const wBlusub = cfg.weight_blusub ?? 50;
+          const mee6B = cfg.mee6RoleBonuses || {};
+          const special = cfg.specialRoles || {};
+          function norm(s) { return (s || "").trim().toLowerCase(); }
+          const rows = (lb.users || []).map((u) => {
+            let bonusPct = 0;
+            (u.mee6RoleNames || []).forEach((r) => { if (mee6B[r] != null) bonusPct += Number(mee6B[r]); });
+            Object.entries(special).forEach(([name, c]) => {
+              const members = (c.members || []).map((m) => norm(m));
+              if (members.includes(norm(u.username))) bonusPct += Number(c.bonusPercent || 0);
+            });
+            const base = (u.mee6Xp || 0) + (u.engagePoints || 0) * wEngage + (u.blusubPoints || 0) * wBlusub;
+            const final = Math.round(base * (1 + bonusPct / 100) * 100) / 100;
+            const roles = [...(u.mee6RoleNames || [])];
+            Object.entries(special).forEach(([name, c]) => {
+              const members = (c.members || []).map((m) => norm(m));
+              if (members.includes(norm(u.username))) roles.push(name);
+            });
+            return { ...u, base, final, bonusPct, rolesStr: roles.join("; ") };
+          });
+          rows.sort((a, b) => b.final - a.final);
+          const header = "Rank,Username,MEE6 XP,MEE6 Level,Engage Points,BluSub Points,Roles,Bonus %,Base,Final Score";
+          const csvLines = [header];
+          rows.forEach((u, i) => {
+            const row = [
+              i + 1,
+              '"' + (u.username || "").replace(/"/g, '""') + '"',
+              u.mee6Xp ?? 0,
+              u.mee6Level ?? 0,
+              u.engagePoints ?? 0,
+              u.blusubPoints ?? 0,
+              '"' + (u.rolesStr || "").replace(/"/g, '""') + '"',
+              (u.bonusPct ?? 0) + "%",
+              u.base ?? 0,
+              u.final ?? 0,
+            ];
+            csvLines.push(row.join(","));
+          });
+          const csv = csvLines.join("\n");
+          const a = document.createElement("a");
+          a.href = "data:text/csv;charset=utf-8," + encodeURIComponent("\uFEFF" + csv);
+          a.download = "airdrop-leaderboard-" + new Date().toISOString().slice(0, 10) + ".csv";
           a.click();
         };
       }
