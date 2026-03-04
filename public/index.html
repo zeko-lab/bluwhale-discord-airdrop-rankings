@@ -10,28 +10,30 @@
   <header class="header">
     <h1>Bluwhale Airdrop Leaderboard</h1>
     <p class="subtitle">MEE6 · Engage · Submissions — combined ranking</p>
-    <a href="admin.html" class="admin-link">Admin</a>
   </header>
 
-  <main class="main">
-    <div id="loading" class="loading">Loading leaderboard…</div>
-    <div id="error" class="error" hidden></div>
-    <div id="table-wrap" class="table-wrap" hidden>
-      <table class="leaderboard">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>User</th>
-            <th>MEE6</th>
-            <th>Engage</th>
-            <th>BluSub</th>
-            <th>Roles</th>
-            <th>Score</th>
-          </tr>
-        </thead>
-        <tbody id="tbody"></tbody>
-      </table>
+  <main class="main main--with-sidebar">
+    <div class="main-content">
+      <div id="loading" class="loading">Loading leaderboard…</div>
+      <div id="error" class="error" hidden></div>
+      <div id="table-wrap" class="table-wrap" hidden>
+        <table class="leaderboard">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>User</th>
+              <th>MEE6</th>
+              <th>Engage</th>
+              <th>BluSub</th>
+              <th>Roles</th>
+              <th>Score</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
     </div>
+    <aside id="info-box" class="info-box" aria-label="How scoring works"></aside>
   </main>
 
   <script src="app.js"></script>
@@ -56,10 +58,18 @@
 
           const weightEngage = config.weight_engage ?? 100;
           const weightBlusub = config.weight_blusub ?? 50;
+          const scoreDivisor = Math.max(1, Number(config.score_divisor) || 100);
           const mee6Bonuses = config.mee6RoleBonuses || {};
           const specialRoles = config.specialRoles || {};
 
           function norm(u) { return (u || "").trim().toLowerCase(); }
+
+          function formatScore(raw) {
+            const scaled = raw / scoreDivisor;
+            if (scaled % 1 === 0) return String(scaled);
+            const s = scaled.toFixed(2);
+            return s.replace(/\.?0+$/, "");
+          }
 
           const rows = (data.users || []).map((u) => {
             let bonusPct = 0;
@@ -95,9 +105,25 @@
               "<td>" + (u.engagePoints ?? 0) + "</td>" +
               "<td>" + (u.blusubPoints ?? 0) + "</td>" +
               "<td><span class='roles'>" + escapeHtml(roles.join(", ") || "—") + "</span></td>" +
-              "<td><strong>" + u.final.toFixed(2) + "</strong></td>";
+              "<td><strong>" + escapeHtml(formatScore(u.final)) + "</strong></td>";
             tbody.appendChild(tr);
           });
+
+          const infoBox = document.getElementById("info-box");
+          let infoHtml = "<h3>How score works</h3>";
+          infoHtml += "<p><strong>Base</strong> = MEE6 XP + (Engage × " + weightEngage + ") + (BluSub × " + weightBlusub + ")</p>";
+          infoHtml += "<p><strong>Score</strong> = Base × (1 + role bonus %) then ÷ " + scoreDivisor + " for display.</p>";
+          const mee6List = Object.entries(mee6Bonuses).filter(([, v]) => v != null && v !== "" && Number(v) !== 0);
+          const specialList = Object.entries(specialRoles).filter(([, c]) => c && (Number(c.bonusPercent) || 0) !== 0);
+          if (mee6List.length || specialList.length) {
+            infoHtml += "<p><strong>Role bonuses</strong></p><ul>";
+            mee6List.forEach(([name, pct]) => { infoHtml += "<li><code>" + escapeHtml(name) + "</code>: +" + pct + "%</li>"; });
+            specialList.forEach(([name, c]) => { infoHtml += "<li>Special <code>" + escapeHtml(name) + "</code>: +" + (c.bonusPercent || 0) + "%</li>"; });
+            infoHtml += "</ul>";
+          } else {
+            infoHtml += "<p>No role bonuses configured. Add them in Admin to boost scores.</p>";
+          }
+          infoBox.innerHTML = infoHtml;
 
           loading.hidden = true;
           error.hidden = true;

@@ -17,3 +17,9 @@
   to = "/.netlify/functions/fetch-leaderboard"
   status = 200
   force = true
+
+[[redirects]]
+  from = "/api/admin-verify"
+  to = "/.netlify/functions/admin-verify"
+  status = 200
+  force = true

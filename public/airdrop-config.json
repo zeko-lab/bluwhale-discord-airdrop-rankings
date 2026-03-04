@@ -1,6 +1,7 @@
 {
   "weight_engage": 100,
   "weight_blusub": 50,
+  "score_divisor": 100,
   "mee6RoleBonuses": {},
   "specialRoles": {}
 }

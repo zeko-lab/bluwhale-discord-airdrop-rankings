@@ -7,6 +7,17 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div id="admin-gate" class="admin-gate">
+    <div class="admin-gate-box">
+      <h2>Admin</h2>
+      <p class="muted">Enter password to continue.</p>
+      <input type="password" id="admin-password" placeholder="Password" autocomplete="current-password" />
+      <button type="button" id="admin-gate-submit">Continue</button>
+      <p id="admin-gate-error" class="error" style="margin-top:0.5rem;display:none;"></p>
+    </div>
+  </div>
+
+  <div id="admin-content" style="display: none;">
   <header class="header">
     <h1>Airdrop config</h1>
     <p class="subtitle">MEE6 role bonuses · Special roles · Weights</p>
@@ -19,10 +30,60 @@
       Save your config and replace <code>public/airdrop-config.json</code> in the repo, then redeploy.
     </p>
   </main>
+  </div>
 
   <script>
     (function() {
+      const ADMIN_KEY = "airdrop_admin_ok";
+      const gate = document.getElementById("admin-gate");
+      const content = document.getElementById("admin-content");
       const root = document.getElementById("admin-root");
+
+      function showAdmin() {
+        gate.style.display = "none";
+        content.style.display = "block";
+      }
+
+      function checkGate() {
+        try {
+          if (sessionStorage.getItem(ADMIN_KEY) === "1") {
+            showAdmin();
+            runApp();
+            return true;
+          }
+        } catch (_) {}
+        return false;
+      }
+
+      if (checkGate()) {
+        // runApp() already called
+      } else {
+        document.getElementById("admin-gate-submit").onclick = async function() {
+          const pw = document.getElementById("admin-password").value;
+          const errEl = document.getElementById("admin-gate-error");
+          errEl.style.display = "none";
+          try {
+            const res = await fetch("/api/admin-verify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ password: pw }),
+            });
+            if (res.ok) {
+              try { sessionStorage.setItem(ADMIN_KEY, "1"); } catch (_) {}
+              showAdmin();
+              runApp();
+            } else {
+              errEl.textContent = "Wrong password.";
+              errEl.style.display = "block";
+            }
+          } catch (e) {
+            errEl.textContent = "Check failed. Try again.";
+            errEl.style.display = "block";
+          }
+        };
+      }
+
+      function runApp() {
 
       async function load() {
         let dataRes, leaderboardRes;
@@ -47,9 +108,11 @@
 
         let html = "";
 
+        const scoreDivisor = config.score_divisor ?? 100;
         html += "<div class='admin-section'><h2>Weights</h2>";
         html += "<label>Engage points weight</label><input type='number' id='weight_engage' value='" + weightEngage + "' min='0' step='1' />";
         html += "<label>BluSub points weight</label><input type='number' id='weight_blusub' value='" + weightBlusub + "' min='0' step='1' />";
+        html += "<label>Score divisor (display scale, e.g. 100 → 300k shows as 3k)</label><input type='number' id='score_divisor' value='" + scoreDivisor + "' min='1' step='1' />";
         html += "</div>";
 
         html += "<div class='admin-section'><h2>MEE6 level roles (extra %)</h2>";
@@ -118,9 +181,11 @@
             const inp = document.getElementById("mee6_" + name);
             if (inp) nextMee6[name] = parseInt(inp.value, 10) || 0;
           });
+          const divEl = document.getElementById("score_divisor");
           return {
             weight_engage: parseInt(document.getElementById("weight_engage").value, 10) || 100,
             weight_blusub: parseInt(document.getElementById("weight_blusub").value, 10) || 50,
+            score_divisor: divEl ? Math.max(1, parseInt(divEl.value, 10) || 100) : 100,
             mee6RoleBonuses: nextMee6,
             specialRoles: { ...specialRoles },
           };
@@ -148,6 +213,7 @@
       }
 
       load();
+      } // end runApp
     })();
   </script>
 </body>
