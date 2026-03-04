@@ -85,7 +85,7 @@
               (u.engagePoints || 0) * weightEngage +
               (u.blusubPoints || 0) * weightBlusub;
             const final = Math.round(base * (1 + bonusPct / 100) * 100) / 100;
-            return { ...u, final, bonusPct };
+            return { ...u, final, bonusPct, base };
           });
 
           rows.sort((a, b) => b.final - a.final);
@@ -98,6 +98,28 @@
               const members = (roleConfig.members || []).map((m) => norm(m));
               if (members.includes(norm(u.username))) roles.push(name);
             }
+            const baseStr = (u.base ?? 0).toLocaleString();
+            const finalStr = (u.final ?? 0).toLocaleString();
+            const bonusLines = [];
+            (u.mee6RoleNames || []).forEach((r) => {
+              const pct = mee6Bonuses[r];
+              if (pct != null && pct !== "" && Number(pct) !== 0) {
+                bonusLines.push("• " + r + " (MEE6 level role): +" + pct + "%");
+              }
+            });
+            Object.entries(specialRoles).forEach(([name, cfg]) => {
+              const members = (cfg.members || []).map((m) => norm(m));
+              if (members.includes(norm(u.username)) && (Number(cfg.bonusPercent) || 0) !== 0) {
+                bonusLines.push("• " + name + " (special role): +" + (cfg.bonusPercent || 0) + "%");
+              }
+            });
+            let scoreTip = "Base: " + baseStr + "\n= MEE6 XP + (Engage×" + weightEngage + ") + (BluSub×" + weightBlusub + ")";
+            if (bonusLines.length) {
+              scoreTip += "\n\nWhere your bonus % comes from:\n" + bonusLines.join("\n") + "\nTotal role bonus: +" + (u.bonusPct ?? 0) + "%";
+            } else {
+              scoreTip += "\n\nRole bonus: +0% (no qualifying roles)";
+            }
+            scoreTip += "\n\nFinal: " + baseStr + " × (1 + " + (u.bonusPct ?? 0) + "%) = " + finalStr + "\nDisplay: " + finalStr + " ÷ " + scoreDivisor + " = " + formatScore(u.final);
             tr.innerHTML =
               "<td>" + (i + 1) + "</td>" +
               "<td><span class='username'>" + escapeHtml(u.username || "—") + "</span></td>" +
@@ -105,7 +127,7 @@
               "<td>" + (u.engagePoints ?? 0) + "</td>" +
               "<td>" + (u.blusubPoints ?? 0) + "</td>" +
               "<td><span class='roles'>" + escapeHtml(roles.join(", ") || "—") + "</span></td>" +
-              "<td><strong>" + escapeHtml(formatScore(u.final)) + "</strong></td>";
+              "<td class='score-cell' title='" + escapeHtml(scoreTip.replace(/'/g, "&#39;")) + "'><strong>" + escapeHtml(formatScore(u.final)) + "</strong></td>";
             tbody.appendChild(tr);
           });
 

@@ -173,6 +173,10 @@ body {
   color: var(--muted);
 }
 
+.leaderboard .score-cell {
+  cursor: help;
+}
+
 /* Admin page */
 .admin-section {
   background: var(--surface);
