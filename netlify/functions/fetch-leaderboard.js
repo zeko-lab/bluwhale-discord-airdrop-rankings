@@ -31,18 +31,34 @@ async function fetchMee6() {
   };
 }
 
+// Fetch Engage in parallel batches to stay under Netlify's ~10s timeout.
+// Max 50 pages (top ~500 users by points) to keep response time reasonable.
+const ENGAGE_PAGE_BATCH = 10;
+const ENGAGE_MAX_PAGES = 50;
+
 async function fetchEngage() {
   const out = [];
   let pageKey = 0;
   let hasNext = true;
-  while (hasNext) {
-    const url = `${ENGAGE_BASE}?guildId=${GUILD_ID}&pageKey=${pageKey}&sortBy=points&sortOrder=desc`;
-    const data = await fetchJson(url);
-    const list = data.leaderboard || [];
-    out.push(...list);
-    hasNext = data.hasNextPage === true;
-    pageKey++;
-    if (list.length === 0) break;
+  while (hasNext && pageKey < ENGAGE_MAX_PAGES) {
+    const batch = [];
+    for (let i = 0; i < ENGAGE_PAGE_BATCH; i++) {
+      const p = pageKey + i;
+      if (p >= ENGAGE_MAX_PAGES) break;
+      batch.push(
+        fetchJson(
+          `${ENGAGE_BASE}?guildId=${GUILD_ID}&pageKey=${p}&sortBy=points&sortOrder=desc`
+        )
+      );
+    }
+    const results = await Promise.all(batch);
+    for (const data of results) {
+      const list = data.leaderboard || [];
+      out.push(...list);
+    }
+    const last = results[results.length - 1];
+    hasNext = last && last.hasNextPage === true && last.leaderboard?.length > 0;
+    pageKey += ENGAGE_PAGE_BATCH;
   }
   return out;
 }
