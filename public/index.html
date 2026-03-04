@@ -116,12 +116,10 @@
           const mee6List = Object.entries(mee6Bonuses).filter(([, v]) => v != null && v !== "" && Number(v) !== 0);
           const specialList = Object.entries(specialRoles).filter(([, c]) => c && (Number(c.bonusPercent) || 0) !== 0);
           if (mee6List.length || specialList.length) {
-            infoHtml += "<p><strong>Role bonuses</strong></p><ul>";
+            infoHtml += "<p><strong>Role bonuses</strong> (each adds this % to your score):</p><ul>";
             mee6List.forEach(([name, pct]) => { infoHtml += "<li><code>" + escapeHtml(name) + "</code>: +" + pct + "%</li>"; });
             specialList.forEach(([name, c]) => { infoHtml += "<li>Special <code>" + escapeHtml(name) + "</code>: +" + (c.bonusPercent || 0) + "%</li>"; });
             infoHtml += "</ul>";
-          } else {
-            infoHtml += "<p>No role bonuses configured. Add them in Admin to boost scores.</p>";
           }
           infoBox.innerHTML = infoHtml;
 
