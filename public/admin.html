@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin — Airdrop Config</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>Airdrop config</h1>
+    <p class="subtitle">MEE6 role bonuses · Special roles · Weights</p>
+    <a href="index.html" class="back-link">← Back to leaderboard</a>
+  </header>
+
+  <main class="main">
+    <div id="admin-root"></div>
+    <p class="muted" style="margin-top: 1rem; font-size: 0.85rem; color: var(--muted);">
+      Save your config and replace <code>public/airdrop-config.json</code> in the repo, then redeploy.
+    </p>
+  </main>
+
+  <script>
+    (function() {
+      const root = document.getElementById("admin-root");
+
+      async function load() {
+        let dataRes, leaderboardRes;
+        try {
+          [dataRes, leaderboardRes] = await Promise.all([
+            fetch("/airdrop-config.json"),
+            fetch("/api/fetch-leaderboard"),
+          ]);
+        } catch (e) {
+          root.innerHTML = "<p class='error'>Failed to load: " + escapeHtml(e.message) + "</p>";
+          return;
+        }
+
+        const config = (await dataRes.json()) || {};
+        const lb = (await leaderboardRes.json()) || {};
+        const roleRewards = lb.roleRewards || [];
+
+        const weightEngage = config.weight_engage ?? 100;
+        const weightBlusub = config.weight_blusub ?? 50;
+        const mee6Bonuses = config.mee6RoleBonuses || {};
+        const specialRoles = config.specialRoles || {};
+
+        let html = "";
+
+        html += "<div class='admin-section'><h2>Weights</h2>";
+        html += "<label>Engage points weight</label><input type='number' id='weight_engage' value='" + weightEngage + "' min='0' step='1' />";
+        html += "<label>BluSub points weight</label><input type='number' id='weight_blusub' value='" + weightBlusub + "' min='0' step='1' />";
+        html += "</div>";
+
+        html += "<div class='admin-section'><h2>MEE6 level roles (extra %)</h2>";
+        roleRewards.forEach((rr) => {
+          const name = rr.role?.name || "?";
+          const rank = rr.rank != null ? rr.rank : "";
+          const val = mee6Bonuses[name] ?? "";
+          html += "<label>%" + escapeHtml(name) + " (level &ge; " + rank + ")</label>";
+          html += "<input type='number' id='mee6_" + escapeHtml(name) + "' value='" + val + "' min='0' max='200' step='1' placeholder='0' style='max-width:120px' />";
+        });
+        if (roleRewards.length === 0) html += "<p class='muted'>No MEE6 role rewards (load leaderboard first).</p>";
+        html += "</div>";
+
+        html += "<div class='admin-section'><h2>Special roles</h2>";
+        html += "<p class='muted' style='font-size:0.85rem'>Role name, one per line usernames, and extra %.</p>";
+        html += "<label>Role name</label><input type='text' id='special_name' placeholder='e.g. OG' />";
+        html += "<label>Members (usernames, one per line)</label><textarea id='special_members' placeholder='user1\nuser2'></textarea>";
+        html += "<label>Extra %</label><input type='number' id='special_pct' min='0' max='200' value='0' style='max-width:120px' />";
+        html += "<button type='button' id='add_special'>Add role</button>";
+        const specialList = document.createElement("div");
+        specialList.id = "special_list";
+        html += "<div id='special_list'></div>";
+        html += "</div>";
+
+        html += "<div class='admin-section config-actions'>";
+        html += "<button type='button' id='copy_json'>Copy JSON</button>";
+        html += "<button type='button' id='download_json'>Download airdrop-config.json</button>";
+        html += "</div>";
+
+        root.innerHTML = html;
+
+        const specialListEl = document.getElementById("special_list");
+        function renderSpecialList() {
+          const list = Object.entries(specialRoles).map(([name, cfg]) => {
+            const members = (cfg.members || []).join(", ");
+            const pct = cfg.bonusPercent ?? 0;
+            return "<div style='margin-bottom:0.5rem'><strong>" + escapeHtml(name) + "</strong> +" + pct + "% — " + escapeHtml(members) + " <button type='button' data-remove='" + escapeHtml(name) + "'>Remove</button></div>";
+          }).join("");
+          specialListEl.innerHTML = list || "<p class='muted'>None yet.</p>";
+          specialListEl.querySelectorAll("[data-remove]").forEach((btn) => {
+            btn.onclick = () => {
+              delete specialRoles[btn.dataset.remove];
+              renderSpecialList();
+            };
+          });
+        }
+        renderSpecialList();
+
+        document.getElementById("add_special").onclick = () => {
+          const name = document.getElementById("special_name").value.trim();
+          const membersText = document.getElementById("special_members").value.trim();
+          const pct = parseInt(document.getElementById("special_pct").value, 10) || 0;
+          if (!name) return;
+          const members = membersText.split(/\n/).map((m) => m.trim()).filter(Boolean);
+          specialRoles[name] = { bonusPercent: pct, members };
+          document.getElementById("special_name").value = "";
+          document.getElementById("special_members").value = "";
+          renderSpecialList();
+        };
+
+        function buildConfig() {
+          const nextMee6 = {};
+          roleRewards.forEach((rr) => {
+            const name = rr.role?.name;
+            if (!name) return;
+            const inp = document.getElementById("mee6_" + name);
+            if (inp) nextMee6[name] = parseInt(inp.value, 10) || 0;
+          });
+          return {
+            weight_engage: parseInt(document.getElementById("weight_engage").value, 10) || 100,
+            weight_blusub: parseInt(document.getElementById("weight_blusub").value, 10) || 50,
+            mee6RoleBonuses: nextMee6,
+            specialRoles: { ...specialRoles },
+          };
+        }
+
+        document.getElementById("copy_json").onclick = () => {
+          const json = JSON.stringify(buildConfig(), null, 2);
+          navigator.clipboard.writeText(json).then(() => alert("Config copied to clipboard.")).catch(() => alert("Copy failed."));
+        };
+
+        document.getElementById("download_json").onclick = () => {
+          const json = JSON.stringify(buildConfig(), null, 2);
+          const a = document.createElement("a");
+          a.href = "data:application/json;charset=utf-8," + encodeURIComponent(json);
+          a.download = "airdrop-config.json";
+          a.click();
+        };
+      }
+
+      function escapeHtml(s) {
+        if (s == null) return "";
+        const div = document.createElement("div");
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      load();
+    })();
+  </script>
+</body>
+</html>

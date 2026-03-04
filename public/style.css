@@ -1,0 +1,187 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --text: #e6edf3;
+  --muted: #8b949e;
+  --accent: #58a6ff;
+  --border: #30363d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+
+.header {
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.header h1 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.subtitle {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.admin-link {
+  display: inline-block;
+  margin-top: 0.75rem;
+  color: var(--accent);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.admin-link:hover {
+  text-decoration: underline;
+}
+
+.main {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+}
+
+.error {
+  color: #f85149;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.leaderboard {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--surface);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.leaderboard th,
+.leaderboard td {
+  padding: 0.6rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.leaderboard th {
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.leaderboard tbody tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.leaderboard .username {
+  font-weight: 500;
+}
+
+.leaderboard small {
+  color: var(--muted);
+  font-size: 0.8em;
+}
+
+.leaderboard .roles {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+/* Admin page */
+.admin-section {
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+}
+
+.admin-section h2 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.1rem;
+}
+
+.admin-section label {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.admin-section input,
+.admin-section textarea {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.admin-section textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+.admin-section button {
+  padding: 0.5rem 1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.admin-section button:hover {
+  opacity: 0.9;
+}
+
+.config-actions {
+  margin-top: 1rem;
+}
+
+.config-actions button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}

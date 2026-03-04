@@ -1,0 +1,19 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Local dev: serve static files from public (run from netlify-airdrop folder)
+[dev]
+  publish = "public"
+  targetPort = 3999
+  autoLaunch = true
+
+# Rewrite so frontend can call /api/fetch-leaderboard
+[[redirects]]
+  from = "/api/fetch-leaderboard"
+  to = "/.netlify/functions/fetch-leaderboard"
+  status = 200
+  force = true

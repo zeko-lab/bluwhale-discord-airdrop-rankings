@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bluwhale Airdrop Leaderboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="header">
+    <h1>Bluwhale Airdrop Leaderboard</h1>
+    <p class="subtitle">MEE6 · Engage · Submissions — combined ranking</p>
+    <a href="admin.html" class="admin-link">Admin</a>
+  </header>
+
+  <main class="main">
+    <div id="loading" class="loading">Loading leaderboard…</div>
+    <div id="error" class="error" hidden></div>
+    <div id="table-wrap" class="table-wrap" hidden>
+      <table class="leaderboard">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>User</th>
+            <th>MEE6</th>
+            <th>Engage</th>
+            <th>BluSub</th>
+            <th>Roles</th>
+            <th>Score</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+  <script>
+    (function() {
+      const tbody = document.getElementById("tbody");
+      const loading = document.getElementById("loading");
+      const error = document.getElementById("error");
+      const tableWrap = document.getElementById("table-wrap");
+
+      async function load() {
+        try {
+          const [dataRes, configRes] = await Promise.all([
+            fetch("/api/fetch-leaderboard"),
+            fetch("/airdrop-config.json"),
+          ]);
+          if (!dataRes.ok) throw new Error("Failed to load leaderboard");
+          if (!configRes.ok) throw new Error("Failed to load config");
+          const data = await dataRes.json();
+          const config = await configRes.json();
+          if (data.error) throw new Error(data.error);
+
+          const weightEngage = config.weight_engage ?? 100;
+          const weightBlusub = config.weight_blusub ?? 50;
+          const mee6Bonuses = config.mee6RoleBonuses || {};
+          const specialRoles = config.specialRoles || {};
+
+          function norm(u) { return (u || "").trim().toLowerCase(); }
+
+          const rows = (data.users || []).map((u) => {
+            let bonusPct = 0;
+            for (const r of (u.mee6RoleNames || [])) {
+              if (mee6Bonuses[r] != null) bonusPct += Number(mee6Bonuses[r]);
+            }
+            for (const [roleName, roleConfig] of Object.entries(specialRoles)) {
+              const members = (roleConfig.members || []).map((m) => norm(m));
+              if (members.includes(norm(u.username))) bonusPct += Number(roleConfig.bonusPercent || 0);
+            }
+            const base =
+              (u.mee6Xp || 0) +
+              (u.engagePoints || 0) * weightEngage +
+              (u.blusubPoints || 0) * weightBlusub;
+            const final = Math.round(base * (1 + bonusPct / 100) * 100) / 100;
+            return { ...u, final, bonusPct };
+          });
+
+          rows.sort((a, b) => b.final - a.final);
+
+          tbody.innerHTML = "";
+          rows.forEach((u, i) => {
+            const tr = document.createElement("tr");
+            const roles = [...(u.mee6RoleNames || [])];
+            for (const [name, roleConfig] of Object.entries(specialRoles)) {
+              const members = (roleConfig.members || []).map((m) => norm(m));
+              if (members.includes(norm(u.username))) roles.push(name);
+            }
+            tr.innerHTML =
+              "<td>" + (i + 1) + "</td>" +
+              "<td><span class='username'>" + escapeHtml(u.username || "—") + "</span></td>" +
+              "<td>" + (u.mee6Xp ?? 0) + " <small>Lv." + (u.mee6Level ?? 0) + "</small></td>" +
+              "<td>" + (u.engagePoints ?? 0) + "</td>" +
+              "<td>" + (u.blusubPoints ?? 0) + "</td>" +
+              "<td><span class='roles'>" + escapeHtml(roles.join(", ") || "—") + "</span></td>" +
+              "<td><strong>" + u.final.toFixed(2) + "</strong></td>";
+            tbody.appendChild(tr);
+          });
+
+          loading.hidden = true;
+          error.hidden = true;
+          tableWrap.hidden = false;
+        } catch (e) {
+          loading.hidden = true;
+          tableWrap.hidden = true;
+          error.textContent = e.message || "Something went wrong.";
+          error.hidden = false;
+        }
+      }
+
+      function escapeHtml(s) {
+        const div = document.createElement("div");
+        div.textContent = s;
+        return div.innerHTML;
+      }
+
+      load();
+    })();
+  </script>
+</body>
+</html>
