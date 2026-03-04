@@ -144,6 +144,12 @@
             specialList.forEach(([name, c]) => { infoHtml += "<li>Special <code>" + escapeHtml(name) + "</code>: +" + (c.bonusPercent || 0) + "%</li>"; });
             infoHtml += "</ul>";
           }
+          const lastMs = data.lastUpdated;
+          if (lastMs) {
+            const lastDate = new Date(lastMs);
+            const lastStr = lastDate.toLocaleString("en-GB", { timeZone: "Europe/Berlin", dateStyle: "medium", timeStyle: "short" });
+            infoHtml += "<p class='info-updated'>Last updated: " + escapeHtml(lastStr) + " (Europe/Berlin)</p>";
+          }
           infoBox.innerHTML = infoHtml;
 
           loading.hidden = true;

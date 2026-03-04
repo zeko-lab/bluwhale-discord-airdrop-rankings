@@ -160,6 +160,7 @@ exports.handler = async (event, context) => {
   const siteUrl = process.env.URL || process.env.NETLIFY_URL || "";
   const now = Date.now();
   if (cached && now - cachedAt < CACHE_TTL_MS) {
+    if (!cached.lastUpdated) cached.lastUpdated = cachedAt;
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json", "Cache-Control": "public, max-age=300" },
@@ -180,7 +181,7 @@ exports.handler = async (event, context) => {
       role: rr.role ? { id: rr.role.id, name: rr.role.name } : null,
     }));
 
-    cached = { users, roleRewards };
+    cached = { users, roleRewards, lastUpdated: now };
     cachedAt = now;
 
     return {
